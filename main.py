@@ -36,6 +36,7 @@ class Ocr():
 def ocr_img(type, img_bytes, background_img_bytes):
 
     try:
+        t = time.perf_counter()
         result = None
         if type == 1:
             result = Ocr.code_image(img_bytes)
@@ -47,7 +48,7 @@ def ocr_img(type, img_bytes, background_img_bytes):
         else:
             return {'code': 0, 'result': None, 'msg': '类型不支持'}
 
-        return {'code': 1, 'result': result, 'msg': 'success'}
+        return {'code': 1, 'result': result, 'consumeTime': int((time.perf_counter() - t)*1000), 'msg': 'success'}
     except Exception as e:
         return {'code': 0, 'result': None, 'msg': str(e).strip()}
 
