@@ -1,9 +1,8 @@
 FROM python:3.8-slim-buster
 
-RUN mkdir /app
+WORKDIR /app
 
 COPY ./*.txt ./*.py ./*.sh ./*.onnx /app/
-
 
 RUN cd /app \
     && python3 -m pip install --upgrade pip -i https://pypi.douban.com/simple/\
@@ -12,6 +11,6 @@ RUN cd /app \
     && sed -i 's#http://deb.debian.org#http://mirrors.aliyun.com/#g' /etc/apt/sources.list\
     && apt-get --allow-releaseinfo-change update && apt install libgl1-mesa-glx libglib2.0-0 -y
 
-WORKDIR /app
+EXPOSE 8124
 
-CMD ["python3", "ocr_server.py", "--port", "8124"]
+CMD ["python3", "main.py", "--port", "8124"]

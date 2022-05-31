@@ -1,3 +1,4 @@
+import time
 import ddddocr
 import uvicorn
 import argparse
@@ -25,16 +26,15 @@ class Ocr():
         return Ocr.det.detection(img)
 
     @staticmethod
-    def slide_image(target_img: bytes, background_img: bytes, algo_type: str = 'comparison'):
-        if algo_type == 'match':
-            return Ocr.slide.slide_match(target_img, background_img)
-        elif algo_type == 'comparison':
+    def slide_image(target_img: bytes, background_img: bytes):
+        try:
             return Ocr.slide.slide_comparison(target_img, background_img)
-        else:
-            raise Exception(f"不支持的滑块算法类型: {algo_type}")
+        except Exception as e:
+            return Ocr.slide.slide_match(target_img, background_img)
 
 
-def ocr_img(type, img_bytes, background_img_bytes, algo_type):
+def ocr_img(type, img_bytes, background_img_bytes):
+
     try:
         result = None
         if type == 1:
@@ -43,11 +43,11 @@ def ocr_img(type, img_bytes, background_img_bytes, algo_type):
             result = Ocr.det_image(img_bytes)
         elif type == 3:
             result = Ocr.slide_image(
-                img_bytes, background_img_bytes, algo_type)
+                img_bytes, background_img_bytes)
         else:
             return {'code': 0, 'result': None, 'msg': '类型不支持'}
 
-        return {'code': 1, 'result': result,  'msg': 'success'}
+        return {'code': 1, 'result': result, 'msg': 'success'}
     except Exception as e:
         return {'code': 0, 'result': None, 'msg': str(e).strip()}
 
@@ -58,29 +58,33 @@ app = FastAPI()
 class Item(BaseModel):
     type: int = 1  # 1英数 2点选 3滑块
     img: str
-    background_img: str = None  # 滑块背景
-    algo_type: str = 'comparison'  # 滑块匹配模式
+    backgroundImg: str = None  # 滑块背景
 
 
 @app.post("/ocr")
 async def ocr_image(item: Item):
     """ 识别Base64编码图片 """
     type = item.type
-    img_bytes = base64.b64decode(item.img)
-    background_img_bytes = base64.b64decode(item.background_img)
-    algo_type = item.algo_type
+    img_bytes = base64.b64decode(item.img, altchars=None, validate=False)
+    background_img_bytes = bytes()
+    if item.backgroundImg is not None:
+        background_img_bytes = base64.b64decode(
+            item.backgroundImg, altchars=None, validate=False)
 
-    result = ocr_img(type, img_bytes, background_img_bytes, algo_type)
+    result = ocr_img(type, img_bytes, background_img_bytes)
     return result
 
 
-@app.post("/ocr_file")
-async def ocr_image_file(type: int = Form(1), algo_type: str = Form('match'), img: UploadFile = File(None), background_img: UploadFile = File(None)):
+@app.post("/ocr/file")
+async def ocr_image_file(type: int = Form(1), img: UploadFile = File(None), backgroundImg: UploadFile = File(None)):
     """ 识别文件上传图片 """
     img_bytes = await img.read()
-    background_img_bytes = await background_img.read()
 
-    result = ocr_img(type, img_bytes, background_img_bytes, algo_type)
+    background_img_bytes = bytes()
+    if backgroundImg is not None:
+        background_img_bytes = await backgroundImg.read()
+
+    result = ocr_img(type, img_bytes, background_img_bytes)
     return result
 
 

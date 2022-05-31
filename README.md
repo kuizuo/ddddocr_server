@@ -19,7 +19,7 @@ pip install -r requirements.txt -i https://pypi.douban.com/simple
 # --det 开启目标检测模式
 
 # 运行
-python ocr_server.py --port 8124
+python main.py --port 8124
 ```
 
 ## docker 运行方式(目测只能在 Linux 下部署)
