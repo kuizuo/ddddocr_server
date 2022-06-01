@@ -34,23 +34,15 @@ class Ocr():
 
 
 def ocr_img(type, img_bytes, background_img_bytes):
-
-    try:
-        t = time.perf_counter()
-        result = None
-        if type == 1:
-            result = Ocr.code_image(img_bytes)
-        elif type == 2:
-            result = Ocr.det_image(img_bytes)
-        elif type == 3:
-            result = Ocr.slide_image(
-                img_bytes, background_img_bytes)
-        else:
-            return {'code': 0, 'result': None, 'msg': '类型不支持'}
-
-        return {'code': 1, 'result': result, 'consumeTime': int((time.perf_counter() - t)*1000), 'msg': 'success'}
-    except Exception as e:
-        return {'code': 0, 'result': None, 'msg': str(e).strip()}
+    if type == 1:
+        return Ocr.code_image(img_bytes)
+    elif type == 2:
+        return Ocr.det_image(img_bytes)
+    elif type == 3:
+        return Ocr.slide_image(
+            img_bytes, background_img_bytes)
+    else:
+        return None
 
 
 app = FastAPI()
@@ -65,28 +57,38 @@ class Item(BaseModel):
 @app.post("/ocr")
 async def ocr_image(item: Item):
     """ 识别Base64编码图片 """
-    type = item.type
-    img_bytes = base64.b64decode(item.img, altchars=None, validate=False)
-    background_img_bytes = bytes()
-    if item.backgroundImg is not None:
-        background_img_bytes = base64.b64decode(
-            item.backgroundImg, altchars=None, validate=False)
+    try:
+        type = item.type
+        img_bytes = base64.b64decode(item.img, altchars=None, validate=False)
+        background_img_bytes = bytes()
+        if item.backgroundImg is not None:
+            background_img_bytes = base64.b64decode(
+                item.backgroundImg, altchars=None, validate=False)
 
-    result = ocr_img(type, img_bytes, background_img_bytes)
-    return result
+        t = time.perf_counter()
+
+        result = ocr_img(type, img_bytes, background_img_bytes)
+
+        return {'code': 1, 'result': result, 'consumeTime': int((time.perf_counter() - t)*1000), 'msg': 'success'}
+    except Exception as e:
+        return {'code': 0, 'result': None, 'msg': str(e).strip()}
 
 
 @app.post("/ocr/file")
 async def ocr_image_file(type: int = Form(1), img: UploadFile = File(None), backgroundImg: UploadFile = File(None)):
     """ 识别文件上传图片 """
-    img_bytes = await img.read()
+    try:
+        img_bytes = await img.read()
+        background_img_bytes = bytes()
+        if backgroundImg is not None:
+            background_img_bytes = await backgroundImg.read()
 
-    background_img_bytes = bytes()
-    if backgroundImg is not None:
-        background_img_bytes = await backgroundImg.read()
+        t = time.perf_counter()
+        result = ocr_img(type, img_bytes, background_img_bytes)
 
-    result = ocr_img(type, img_bytes, background_img_bytes)
-    return result
+        return {'code': 1, 'result': result, 'consumeTime': int((time.perf_counter() - t)*1000), 'msg': 'success'}
+    except Exception as e:
+        return {'code': 0, 'result': None, 'msg': str(e).strip()}
 
 
 @app.get("/ping")
